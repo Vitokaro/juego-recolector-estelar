@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recolector Estelar Estratégico</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            background-color: #f0f4f8; /* Un tono gris azulado muy claro */
+            margin: 0;
+            padding: 20px;
+            color: #2c3e50; /* Azul pizarra oscuro */
+        }
+        h1 {
+            color: #3498db; /* Azul brillante */
+            text-shadow: 1px 1px 2px #bdc3c7;
+        }
+        #level-selection, #controls, #results {
+            margin: 20px auto;
+            padding: 18px;
+            background-color: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.12);
+            max-width: 700px;
+        }
+        #game-container {
+            width: 90%;
+            max-width: 650px;
+            height: 450px;
+            border: 3px solid #3498db;
+            margin: 20px auto;
+            position: relative;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%"><defs><radialGradient id="grad" cx="50%" cy="50%" r="50%"><stop offset="0%" style="stop-color:rgb(15,30,70);stop-opacity:1" /><stop offset="100%" style="stop-color:rgb(5,10,30);stop-opacity:1" /></radialGradient></defs><rect width="100" height="100" fill="url(%23grad)"/><g fill="%23FFF" opacity="0.7"><circle cx="10" cy="10" r="0.5"/><circle cx="80" cy="30" r="0.3"/><circle cx="50" cy="70" r="0.7"/><circle cx="20" cy="80" r="0.4"/><circle cx="90" cy="90" r="0.5"/><circle cx="30" cy="40" r="0.3"/><circle cx="70" cy="15" r="0.6"/></g></svg>');
+            background-size: cover;
+            overflow: hidden;
+            border-radius: 8px;
+            cursor: crosshair; /* Indica que se puede clickear en el área */
+        }
+        .crystal {
+            position: absolute;
+            background: radial-gradient(circle, #ffffff, #a2d2ff, #60a3d9);
+            border: 1px solid #caf0f8;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            color: #003566;
+            cursor: pointer;
+            user-select: none;
+            box-shadow: 0 0 10px #72c1fc, 0 0 18px #72c1fc, inset 0 0 4px #fff;
+            transition: transform 0.1s ease-out, opacity 0.3s ease;
+        }
+        .crystal:active {
+            transform: scale(0.9);
+        }
+        .crystal.level1 { /* Nivel 1 (antes Nivel 2) */
+            width: 45px;
+            height: 45px;
+            font-size: 1.1em;
+        }
+        .crystal.level2 { /* Nivel 2 (nuevas mecánicas) */
+            width: 35px;  /* Más pequeños */
+            height: 35px;
+            font-size: 0.9em;
+            box-shadow: 0 0 6px #f1c40f, 0 0 12px #f1c40f, inset 0 0 3px #fff; /* Brillo amarillo para destacar */
+            background: radial-gradient(circle, #fef9e7, #f7dc6f, #f1c40f); /* Tonos amarillos */
+            color: #783f04;
+        }
+        button {
+            padding: 12px 28px;
+            font-size: 1.1em;
+            color: white;
+            background-color: #3498db; /* Azul brillante */
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button:hover {
+            background-color: #2980b9; /* Azul más oscuro */
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            background-color: #bdc3c7; /* Gris claro */
+            cursor: not-allowed;
+            transform: translateY(0);
+            box-shadow: none;
+        }
+        #score-preview, #timer-display {
+            font-size: 1.3em;
+            margin-bottom: 15px;
+            color: #2980b9;
+            font-weight: bold;
+        }
+        #data-table {
+            width: 90%;
+            margin: 25px auto;
+            border-collapse: collapse;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        #data-table th, #data-table td {
+            border: 1px solid #bdc3c7; /* Bordes grises suaves */
+            padding: 12px;
+            text-align: center;
+        }
+        #data-table th {
+            background-color: #3498db; /* Azul brillante para cabecera */
+            color: white;
+            font-weight: 600;
+        }
+        #data-table td {
+            background-color: #fdfefe;
+        }
+        #data-table tr:nth-child(even) td {
+            background-color: #f4f6f7; /* Rayado suave */
+        }
+        #data-table tfoot td {
+            font-weight: bold;
+            background-color: #eaf2f8;
+            color: #2c3e50;
+        }
+        .mission-message {
+            color: white;
+            font-size: 1.8em;
+            padding-top: 35%;
+            font-weight: bold;
+            text-shadow: 0 0 10px #3498db;
+            animation: fadeIn 1s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Recolector Estelar Estratégico</h1>
+
+    <div id="level-selection">
+        <h2>Elige tu Desafío</h2>
+        <button id="level1-btn">Nivel 1: Reacción Rápida</button>
+        <button id="level2-btn">Nivel 2: Decisión Estratégica</button>
+    </div>
+
+    <div id="controls" style="display:none;">
+        <div id="timer-display">Tiempo: <span id="time">0</span>s</div>
+        <div id="score-preview">Puntos Acumulados: <span id="current-score">0</span></div>
+        <button id="start-mission-btn">Comenzar Misión</button>
+    </div>
+
+    <div id="game-container">
+        <p class="mission-message" id="initial-message">Selecciona un nivel para tu aventura.</p>
+    </div>
+
+    <div id="results" style="display:none;">
+        <h2>Reporte de Misión</h2>
+        <table id="data-table">
+            <thead>
+                <tr>
+                    <th>Clic N°</th>
+                    <th>Valor Obtenido</th>
+                </tr>
+            </thead>
+            <tbody id="data-table-body">
+                </tbody>
+            <tfoot id="data-table-foot">
+                </tfoot>
+        </table>
+        <p id="no-data-message" style="display:none; color: #7f8c8d;">No se registraron clics en esta misión.</p>
+    </div>
+
+    <script>
+        const gameContainer = document.getElementById('game-container');
+        const levelSelectionDiv = document.getElementById('level-selection');
+        const controlsDiv = document.getElementById('controls');
+        const resultsDiv = document.getElementById('results');
+        const initialMessage = document.getElementById('initial-message');
+
+        const level1Btn = document.getElementById('level1-btn');
+        const level2Btn = document.getElementById('level2-btn');
+        const startMissionBtn = document.getElementById('start-mission-btn');
+
+        const currentScoreDisplay = document.getElementById('current-score');
+        const dataTableBody = document.getElementById('data-table-body');
+        const dataTableFoot = document.getElementById('data-table-foot');
+        const noDataMessage = document.getElementById('no-data-message');
+        const timerDisplaySpan = document.getElementById('time');
+
+        let missionData = []; // Almacenará objetos: { clickNumber: N, value: X }
+        let clickCounter = 0;
+        let missionInterval;
+        let itemGeneratorInterval;
+        let currentLevelSettings = {};
+        let currentScore = 0;
+
+        const gameSettings = {
+            level1: { // Antes era Nivel 2, ahora es Nivel 1
+                name: "Reacción Rápida",
+                missionTime: 25,
+                crystalIntervalTime: 1300, // ms, aparecen relativamente rápido
+                crystalLifespan: 2800,    // ms, desaparecen rápido
+                crystalValueMax: 15,
+                crystalClass: 'level1',
+                generationMode: 'single' // Genera un cristal a la vez
+            },
+            level2: { // Nuevo Nivel 2 estratégico
+                name: "Decisión Estratégica",
+                missionTime: 30, // Un poco más de tiempo para pensar
+                batchIntervalTime: 3500, // Intervalo entre lotes de cristales
+                batchSize: 4,           // Cristales por lote
+                crystalLifespan: 2000,  // Desaparecen muy rápido del lote
+                crystalValueRange: [1, 2, 3, 5, 8, 10, 15, 20], // Posibles valores, para asegurar variedad
+                crystalClass: 'level2',
+                generationMode: 'batch'  // Genera un lote de cristales
+            }
+        };
+
+        level1Btn.addEventListener('click', () => setupLevel(gameSettings.level1));
+        level2Btn.addEventListener('click', () => setupLevel(gameSettings.level2));
+        startMissionBtn.addEventListener('click', startMission);
+
+        // Event listener para clics fallidos en el contenedor
+        gameContainer.addEventListener('click', (event) => {
+            // Solo registrar si el juego está activo (botón de start deshabilitado) y se hizo clic en el fondo
+            if (startMissionBtn.disabled && event.target === gameContainer) {
+                clickCounter++;
+                missionData.push({ clickNumber: clickCounter, value: 0 });
+                updateScorePreview(); // El puntaje no cambia, pero actualizamos por si se quiere mostrar el clic
+                console.log(`Clic ${clickCounter}: Fallo (valor 0)`);
+            }
+        });
+
+
+        function setupLevel(settings) {
+            currentLevelSettings = settings;
+            levelSelectionDiv.style.display = 'none';
+            controlsDiv.style.display = 'block';
+            resultsDiv.style.display = 'none';
+            gameContainer.innerHTML = `<p class="mission-message">¡Prepárate para ${settings.name}!</p>`;
+            timerDisplaySpan.textContent = currentLevelSettings.missionTime;
+            startMissionBtn.disabled = false;
+            currentScoreDisplay.textContent = '0';
+            currentScore = 0;
+            clickCounter = 0;
+            missionData = [];
+        }
+
+        function startMission() {
+            missionData = [];
+            clickCounter = 0;
+            currentScore = 0;
+            updateScorePreview();
+
+            startMissionBtn.disabled = true;
+            resultsDiv.style.display = 'none';
+            gameContainer.innerHTML = '';
+
+            let timeLeft = currentLevelSettings.missionTime;
+            timerDisplaySpan.textContent = timeLeft;
+
+            if (currentLevelSettings.generationMode === 'single') {
+                itemGeneratorInterval = setInterval(generateSingleCrystal, currentLevelSettings.crystalIntervalTime);
+            } else if (currentLevelSettings.generationMode === 'batch') {
+                itemGeneratorInterval = setInterval(generateCrystalBatch, currentLevelSettings.batchIntervalTime);
+                generateCrystalBatch(); // Generar un lote inicial
+            }
+
+
+            missionInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplaySpan.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    endMission();
+                }
+            }, 1000);
+        }
+
+        function generateSingleCrystal() {
+            if (parseInt(timerDisplaySpan.textContent) <= 0) return;
+            createCrystalElement(Math.floor(Math.random() * currentLevelSettings.crystalValueMax) + 1, currentLevelSettings.crystalClass, currentLevelSettings.crystalLifespan);
+        }
+
+        function generateCrystalBatch() {
+            if (parseInt(timerDisplaySpan.textContent) <= 0) return;
+            const gameRect = gameContainer.getBoundingClientRect();
+            const occupiedPositions = []; // Para evitar superposiciones en el lote
+
+            for (let i = 0; i < currentLevelSettings.batchSize; i++) {
+                const crystalValue = currentLevelSettings.crystalValueRange[Math.floor(Math.random() * currentLevelSettings.crystalValueRange.length)];
+                let pos;
+                let attempts = 0;
+                do { // Intenta encontrar una posición no superpuesta
+                    pos = {
+                        top: Math.random() * (gameRect.height - 40), // Asumiendo tamaño máx de cristal
+                        left: Math.random() * (gameRect.width - 40)
+                    };
+                    attempts++;
+                } while (isOverlapping(pos, occupiedPositions) && attempts < 10);
+                
+                occupiedPositions.push({ ...pos, width: 40, height: 40 });
+                createCrystalElement(crystalValue, currentLevelSettings.crystalClass, currentLevelSettings.crystalLifespan, pos.top, pos.left);
+            }
+        }
+        
+        function isOverlapping(newPos, existingPositions) {
+            const size = 40; // Tamaño aproximado para chequeo
+            for (let pos of existingPositions) {
+                if (newPos.left < pos.left + size &&
+                    newPos.left + size > pos.left &&
+                    newPos.top < pos.top + size &&
+                    newPos.top + size > pos.top) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+
+        function createCrystalElement(value, cssClass, lifespan, topPos, leftPos) {
+            const crystal = document.createElement('div');
+            crystal.classList.add('crystal', cssClass);
+            crystal.textContent = value;
+
+            const gameRect = gameContainer.getBoundingClientRect();
+            const crystalSize = (cssClass === 'level2') ? 35 : 45;
+
+            crystal.style.top = (topPos !== undefined ? topPos : Math.random() * (gameRect.height - crystalSize)) + 'px';
+            crystal.style.left = (leftPos !== undefined ? leftPos : Math.random() * (gameRect.width - crystalSize)) + 'px';
+
+            crystal.addEventListener('click', (event) => {
+                event.stopPropagation(); // Evitar que el clic se propague al contenedor (y cuente como fallo)
+                if (parseInt(timerDisplaySpan.textContent) > 0) {
+                    clickCounter++;
+                    missionData.push({ clickNumber: clickCounter, value: value });
+                    currentScore += value;
+                    updateScorePreview();
+                    crystal.remove();
+                    console.log(`Clic ${clickCounter}: Valor ${value}`);
+                }
+            });
+
+            gameContainer.appendChild(crystal);
+
+            setTimeout(() => {
+                if (crystal.parentNode === gameContainer) {
+                    crystal.style.opacity = '0'; // Desvanecer
+                    setTimeout(() => crystal.remove(), 300); // Remover tras desvanecer
+                }
+            }, lifespan);
+        }
+
+        function updateScorePreview() {
+            currentScoreDisplay.textContent = currentScore;
+        }
+
+        function endMission() {
+            clearInterval(missionInterval);
+            clearInterval(itemGeneratorInterval);
+            gameContainer.innerHTML = `<p class="mission-message">¡Misión Finalizada!</p>`;
+            startMissionBtn.disabled = false;
+            displayDataTable();
+            controlsDiv.style.display = 'none';
+            levelSelectionDiv.style.display = 'block';
+        }
+
+        function displayDataTable() {
+            resultsDiv.style.display = 'block';
+            dataTableBody.innerHTML = '';
+            dataTableFoot.innerHTML = '';
+
+            if (missionData.length === 0) {
+                noDataMessage.style.display = 'block';
+                document.getElementById('data-table').style.display = 'none';
+                return;
+            }
+            
+            noDataMessage.style.display = 'none';
+            document.getElementById('data-table').style.display = 'table';
+
+            let totalPoints = 0;
+            missionData.forEach(data => { // Ya están en orden de clic
+                const row = dataTableBody.insertRow();
+                row.insertCell().textContent = data.clickNumber;
+                row.insertCell().textContent = data.value;
+                totalPoints += data.value;
+            });
+
+            // Fila de totales
+            const footRow = dataTableFoot.insertRow();
+            const cellLabel = footRow.insertCell();
+            cellLabel.colSpan = 1; // Ocupa la primera columna
+            cellLabel.textContent = "TOTALES:";
+            cellLabel.style.textAlign = "right";
+            
+            const cellValues = footRow.insertCell();
+            cellValues.textContent = ` ${missionData.length} clics = ${totalPoints} puntos`;
+            cellValues.style.textAlign = "left";
+        }
+    </script>
+</body>
+</html>
